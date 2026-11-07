@@ -1,0 +1,16 @@
+{
+  "name": "analitica-ventas-sql",
+  "version": "1.0.0",
+  "description": "Analítica de ventas en PostgreSQL: funciones de ventana, cohortes, RFM, percentiles y canasta",
+  "scripts": {
+    "test": "node --test \"pruebas/*.test.mjs\"",
+    "informe": "node scripts/informe.mjs"
+  },
+  "author": "Matías Nicolás Echeveste Cardozo",
+  "license": "MIT",
+  "type": "module",
+  "devDependencies": {
+    "@electric-sql/pglite": "^0.5.15"
+  },
+  "private": true
+}

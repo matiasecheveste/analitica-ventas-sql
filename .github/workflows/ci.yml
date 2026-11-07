@@ -1,0 +1,52 @@
+# Analítica de ventas en PostgreSQL — Matías Nicolás Echeveste Cardozo
+name: CI
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  pglite:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+
+  postgres:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: analista
+          POSTGRES_PASSWORD: analista
+          POSTGRES_DB: ventas
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U analista" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PGHOST: localhost
+      PGUSER: analista
+      PGPASSWORD: analista
+      PGDATABASE: ventas
+    steps:
+      - uses: actions/checkout@v4
+      - name: Cargar esquema y datos de demostración
+        run: psql -v ON_ERROR_STOP=1 -q -f sql/01_esquema.sql -f sql/02_vistas.sql -f sql/03_datos_demo.sql
+      - name: Ejecutar consultas y guardar planes
+        run: |
+          mkdir -p planes
+          for consulta in consultas/*.sql; do
+            echo "::group::$consulta"
+            psql -v ON_ERROR_STOP=1 -P pager=off -f "$consulta" | head -25
+            { echo 'EXPLAIN (ANALYZE, BUFFERS)'; grep -v '^--' "$consulta"; } | psql -v ON_ERROR_STOP=1 > "planes/$(basename "$consulta" .sql).txt"
+            echo "::endgroup::"
+          done
+      - uses: actions/upload-artifact@v4
+        with:
+          name: planes-de-ejecucion
+          path: planes/
